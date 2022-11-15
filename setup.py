@@ -5,7 +5,7 @@ setup(
     name='tdbc34',
     version='0.1.0',    
     description='Deseralize ctrader tdbc34 datafile for backtesting',
-    url='https://github.com/casperm/ctrader-backtest-data',
+    url='https://github.com/casperm/ctrader-backtest',
     author='Casper Mak',
     author_email='ask@casper.me.uk',
     license='MIT License',

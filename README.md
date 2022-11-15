@@ -487,10 +487,3 @@ LIMIT 10
         <td>None</td>
     </tr>
 </table>
-
-
-
-
-```python
-
-```
