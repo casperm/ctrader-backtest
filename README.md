@@ -1,6 +1,6 @@
 # Read tdbc34 backtest files with Windows WSL
 
-This Python library deserialize tdbc34 cache files from your cTrader Backtesting Cach director.
+This Python library deserialize tdbc34 cache files from your cTrader Backtesting Cache directory.
 
 ## Installation
 ```bash
