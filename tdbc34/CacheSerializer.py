@@ -72,7 +72,7 @@ def DeserializeTicks(fs:gzip.GzipFile):
             pa.array([GetDouble(bid) for bid in chunks(bid_bytes, DoubleSize)]),
             pa.array([GetDouble(ask) for ask in chunks(ask_bytes, DoubleSize)])
         ], schema = pa.schema([
-            ("utctime", pa.timestamp('ms',tz="+0:0")),
+            ("utctime", pa.timestamp('ms',tz="UTC")),
             ("bid", pa.decimal128(15, 6)),
             ("ask", pa.decimal128(15, 6))
         ]) 
@@ -116,7 +116,7 @@ def DeserializeBars(fs:gzip.GzipFile):
         pa.array([GetDouble(close) for close in chunks(close_bytes, DoubleSize)]),
         pa.array([GetLong(volume) for volume in chunks(tickvol_bytes, LongSize)])
     ], schema = pa.schema([
-            ("utctime", pa.timestamp('ms',tz="+0:0")),
+            ("utctime", pa.timestamp('ms',tz="UTC")),
             ("open", pa.decimal128(15, 6)),
             ("high", pa.decimal128(15, 6)),
             ("low", pa.decimal128(15, 6)),
