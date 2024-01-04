@@ -3,8 +3,8 @@ from setuptools import setup
 
 setup(
     name='tdbc34',
-    version='0.1.1',    
-    description='Deseralize ctrader tdbc34 datafile for backtesting',
+    version='1.0.0',    
+    description='Read cTrader local cached data',
     url='https://github.com/casperm/ctrader-backtest',
     author='Casper Mak',
     author_email='ask@casper.me.uk',
