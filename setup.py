@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='tdbc34',
-    version='1.0.1',    
+    version='1.0.2',    
     description='Read cTrader local cached data',
     url='https://github.com/casperm/ctrader-backtest',
     author='Casper Mak',

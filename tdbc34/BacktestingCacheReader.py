@@ -154,16 +154,16 @@ def DescribeAvailableCachedData(env="wsl"):
     _path_sep = ""
     if env=="wsl":
         # cache_loc_pattern = ("/mnt/*/Users/*/AppData/Roaming/**/BacktestingCache/*/*/[mt]1")
-        cache_loc_pattern = ("/mnt/*/Users/*/AppData/Roaming/????????/Cache/*/BacktestingCache/*/*/[mt]1")
+        cache_loc_pattern = ("/mnt/*/Users/*/AppData/Roaming/????????/Cache/*/BacktestingCache/**/[mt]1")
         _path_sep = "/"
     elif env=="windows":
         home_directory = os.path.expanduser( '~' )
-        cache_loc_pattern = ("%s\\AppData\Roaming\\????????\\Cache\\*\\BacktestingCache\\*\\*\\[mt]1" % home_directory)
+        cache_loc_pattern = ("%s\\AppData\Roaming\\????????\\Cache\\*\\BacktestingCache\\**\\[mt]1" % home_directory)
         _path_sep = "\\"
     else:
         raise Exception(("Not yet implemented environment '%s'" % env ))
 
-    for path in glob.glob(cache_loc_pattern):
+    for path in glob.glob(cache_loc_pattern, recursive = True):
 
         _path_parts = path.split(sep=_path_sep)
         _account, _instrument, _cache_type  = _path_parts[-3:]
@@ -218,4 +218,5 @@ def GetCachedBackTestData(path="",start_date_str="",end_date_str="", env="wsl"):
     return pa.concat_tables(paData)
 
 def DescribeAvailableCacheDataInDataFrame(env="wsl"):
-    return pd.json_normalize(DescribeAvailableCacheData(env))
+    pd.set_option('display.max_colwidth', None)
+    return pd.json_normalize(DescribeAvailableCachedData(env))
