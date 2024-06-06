@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='tdbc34',
-    version='1.0.2',    
+    version='1.0.3',    
     description='Read cTrader local cached data',
     url='https://github.com/casperm/ctrader-backtest',
     author='Casper Mak',
@@ -11,7 +11,7 @@ setup(
     license='MIT License',
     packages=['tdbc34'],
     install_requires=[
-        'pandas>=1.5.0',
-        'pyarrow>=9.0.0'
+        'pandas==2.0.3',
+        'pyarrow==16.1.0'
     ],
 )

@@ -5,6 +5,8 @@ import io
 import sys
 import struct
 import pyarrow as pa
+import pyarrow.compute as pc
+import pyarrow.dataset as ds
 import os
 from datetime import datetime
 from datetime import timedelta
@@ -66,10 +68,10 @@ def DeserializeTicks(fs:gzip.GzipFile):
             ("utctime", pa.timestamp('ms',tz="UTC")),
             ("bid", pa.decimal128(15, 6)),
             ("ask", pa.decimal128(15, 6))
-        ]) 
-    )
-
+        ])
+    ) 
     
+
 def DeserializeBars(fs:gzip.GzipFile):
     
     rec_count = 0
@@ -115,8 +117,8 @@ def DeserializeBars(fs:gzip.GzipFile):
             ("close", pa.decimal128(15, 6)), 
             ("volume", pa.uint64())
         ]) 
-    )          
-
+    )
+   
 def OpenDataFile(filePath:str):
     data = {}
     
@@ -220,3 +222,36 @@ def GetCachedBackTestData(path="",start_date_str="",end_date_str="", env="wsl"):
 def DescribeAvailableCacheDataInDataFrame(env="wsl"):
     pd.set_option('display.max_colwidth', None)
     return pd.json_normalize(DescribeAvailableCachedData(env))
+
+def LoadCacheToParquetDatasets(env="wsl",cache_location="~/.tdbc34/"):
+    _allCachedData = DescribeAvailableCachedData(env)
+    for itm in _allCachedData:
+        _allCachedFileNames = DescribeCacheData(itm['path'], env)
+
+        if len(_allCachedFileNames) < 1:
+            print("No chache file files in '%s'" % itm['path'] )
+            continue
+        
+        _dest_path = os.path.join(cache_location, itm['account'], itm['instrument'], itm['type'])
+
+        paData = pa.concat_tables([
+            OpenDataFile(os.path.join(itm['path'],_allCachedFileNames[k])) 
+            for k in _allCachedFileNames
+            ])
+
+        #Create partition key
+        paData = paData.add_column(0,"yearmon", [
+            pc.strftime(paData['utctime'],format="%Y%m")
+        ])
+
+        ds.write_dataset(
+            data = paData,
+            base_dir = _dest_path,
+            format= "parquet",
+            partitioning=ds.partitioning(
+                pa.schema([("yearmon",pa.string())]),
+                flavor="filename"
+            ),
+            existing_data_behavior='delete_matching'
+        )
+          
