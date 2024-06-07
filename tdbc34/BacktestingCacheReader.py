@@ -234,24 +234,23 @@ def LoadCacheToParquetDatasets(env="wsl",cache_location="~/.tdbc34/"):
         
         _dest_path = os.path.join(cache_location, itm['account'], itm['instrument'], itm['type'])
 
-        paData = pa.concat_tables([
-            OpenDataFile(os.path.join(itm['path'],_allCachedFileNames[k])) 
-            for k in _allCachedFileNames
+        for k in _allCachedFileNames:
+            paData = OpenDataFile(os.path.join(itm['path'],_allCachedFileNames[k]))
+
+            #Create partition key
+            paData = paData.add_column(0,"yearmon", [
+                pc.strftime(paData['utctime'],format="%Y%m")
             ])
 
-        #Create partition key
-        paData = paData.add_column(0,"yearmon", [
-            pc.strftime(paData['utctime'],format="%Y%m")
-        ])
 
-        ds.write_dataset(
-            data = paData,
-            base_dir = _dest_path,
-            format= "parquet",
-            partitioning=ds.partitioning(
-                pa.schema([("yearmon",pa.string())]),
-                flavor="filename"
-            ),
-            existing_data_behavior='delete_matching'
-        )
+            ds.write_dataset(
+                data = paData,
+                base_dir = _dest_path,
+                format= "parquet",
+                partitioning=ds.partitioning(
+                    pa.schema([("yearmon",pa.string())])
+                ),
+                basename_template="part-{:%Y%m%d}-{{i}}.parquet".format(k),
+                existing_data_behavior='overwrite_or_ignore'
+            )
           
