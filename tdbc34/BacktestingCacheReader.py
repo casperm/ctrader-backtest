@@ -7,6 +7,7 @@ import struct
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.dataset as ds
+import numpy as np
 import os
 from datetime import datetime
 from datetime import timedelta
@@ -45,23 +46,24 @@ def DeserializeTicks(fs:gzip.GzipFile):
     
     data_len = GetFileLength(fs) / 24 #24 = 8 bytes * 3 elements (timestamp, bid, ask)
   
-    utc_times, bids, asks = [],[],[]
+    utc_times, bids, asks = np.array([]), np.array([]),np.array([])
     
     while (rec_count < data_len):
         #read time
-        utc_times += [GetDateTimeFromMilliseconds(GetLong(fs.read(LongSize)))]
+        utc_times = np.append(utc_times, GetDateTimeFromMilliseconds(GetLong(fs.read(LongSize))))
+
 
         #read bid
-        bids += [GetDouble(fs.read(DoubleSize))]
+        bids = np.append(bids, GetDouble(fs.read(DoubleSize)))
 
         #read ask
-        asks += [GetDouble(fs.read(DoubleSize)) ]
+        asks = np.append(asks, GetDouble(fs.read(DoubleSize)))
         
         rec_count +=1
         
     return pa.table(
         [
-            pa.array(utc_times),
+            pa.array(utc_times.astype('datetime64[ms]')),
             pa.array(bids),
             pa.array(asks)
         ], schema = pa.schema([
@@ -78,32 +80,32 @@ def DeserializeBars(fs:gzip.GzipFile):
     
     data_len = GetFileLength(fs) / 48 #48 = 8bytes * 6 elements (timestamp, open, high, low, close, volume)
     
-    utc_times, opens, highs, lows, closes, volumes = [] ,[] ,[] ,[] ,[] , []
-
+    utc_times, opens, highs, lows, closes, volumes = np.array([]), np.array([]),np.array([]),np.array([]),np.array([]),np.array([])
+    
     while (rec_count < data_len):
 
         #read time
-        utc_times += [GetDateTimeFromMilliseconds(GetLong(fs.read(LongSize)))]
+        utc_times = np.append(utc_times, GetDateTimeFromMilliseconds(GetLong(fs.read(LongSize))))
 
         #read open
-        opens += [GetDouble(fs.read(DoubleSize))]
+        opens = np.append(opens, GetDouble(fs.read(DoubleSize)))
 
         #read high
-        highs += [GetDouble(fs.read(DoubleSize)) ]
+        highs = np.append(highs, GetDouble(fs.read(DoubleSize)))
 
         #read low
-        lows += [GetDouble(fs.read(DoubleSize)) ]
+        lows = np.append(lows, GetDouble(fs.read(DoubleSize)))
 
         #read close
-        closes += [GetDouble(fs.read(DoubleSize)) ]
+        closes = np.append(closes, GetDouble(fs.read(DoubleSize)))
 
         #read volume
-        volumes += [GetLong(fs.read(LongSize))]
+        volumes = np.append(volumes, GetLong(fs.read(LongSize)))
         
         rec_count +=1
     
     return pa.table([
-        pa.array(utc_times),
+        pa.array(utc_times.astype('datetime64[ms]')),
         pa.array(opens),
         pa.array(highs),
         pa.array(lows),
