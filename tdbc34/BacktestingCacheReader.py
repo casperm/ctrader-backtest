@@ -1,13 +1,12 @@
 import gzip
 import glob
-import math
-import io
-import sys
+import gc
 import struct
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.dataset as ds
 import numpy as np
+from multiprocessing import Pool
 import os
 from datetime import datetime
 from datetime import timedelta
@@ -60,7 +59,9 @@ def DeserializeTicks(fs:gzip.GzipFile):
         asks = np.append(asks, GetDouble(fs.read(DoubleSize)))
         
         rec_count +=1
-        
+    
+    gc.collect()
+
     return pa.table(
         [
             pa.array(utc_times.astype('datetime64[ms]')),
@@ -103,6 +104,8 @@ def DeserializeBars(fs:gzip.GzipFile):
         volumes = np.append(volumes, GetLong(fs.read(LongSize)))
         
         rec_count +=1
+    
+    gc.collect()
     
     return pa.table([
         pa.array(utc_times.astype('datetime64[ms]')),
@@ -225,9 +228,36 @@ def DescribeAvailableCacheDataInDataFrame(env="wsl"):
     pd.set_option('display.max_colwidth', None)
     return pd.json_normalize(DescribeAvailableCachedData(env))
 
+
+def ConvertToParquet(_datafile_path,_dest_path,):
+    paData = OpenDataFile(_datafile_path)
+
+    #Create partition key
+    paData = paData.add_column(0,"yearmon", [
+        pc.strftime(paData['utctime'],format="%Y%m")
+    ])
+
+    _datafilename = Path(_datafile_path).stem
+
+    print(("processing data file %s" % _datafilename))
+
+    ds.write_dataset(
+        data = paData,
+        base_dir = _dest_path,
+        format= "parquet",
+        partitioning=ds.partitioning(
+            pa.schema([("yearmon",pa.string())])
+        ),
+        basename_template="part-{0}-{{i}}.parquet".format(_datafilename),
+        existing_data_behavior='overwrite_or_ignore'
+    )
+
 def LoadCacheToParquetDatasets(env="wsl",cache_location="~/.tdbc34/"):
     _allCachedData = DescribeAvailableCachedData(env)
     for itm in _allCachedData:
+
+        print(("processing instrument %s" % itm['instrument']))
+
         _allCachedFileNames = DescribeCacheData(itm['path'], env)
 
         if len(_allCachedFileNames) < 1:
@@ -236,23 +266,12 @@ def LoadCacheToParquetDatasets(env="wsl",cache_location="~/.tdbc34/"):
         
         _dest_path = os.path.join(cache_location, itm['account'], itm['instrument'], itm['type'])
 
-        for k in _allCachedFileNames:
-            paData = OpenDataFile(os.path.join(itm['path'],_allCachedFileNames[k]))
-
-            #Create partition key
-            paData = paData.add_column(0,"yearmon", [
-                pc.strftime(paData['utctime'],format="%Y%m")
-            ])
-
-
-            ds.write_dataset(
-                data = paData,
-                base_dir = _dest_path,
-                format= "parquet",
-                partitioning=ds.partitioning(
-                    pa.schema([("yearmon",pa.string())])
-                ),
-                basename_template="part-{:%Y%m%d}-{{i}}.parquet".format(k),
-                existing_data_behavior='overwrite_or_ignore'
-            )
+        with Pool() as pool:
+            result  = [
+                pool.apply(ConvertToParquet, args=(
+                    os.path.join(itm['path'],_allCachedFileNames[k]),
+                    _dest_path,
+                    )
+                    ) for k in _allCachedFileNames]
+            
           
